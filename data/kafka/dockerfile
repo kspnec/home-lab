@@ -1,1 +1,37 @@
+FROM openjdk:11.0.10-jre-buster
 
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y curl && \
+    apt-get install -y telnet
+
+# Environment variables for Kafka and Zookeeper
+ENV KAFKA_VERSION 2.7.0
+ENV SCALA_VERSION 2.13
+ENV ZOOKEEPER_1_PORT_2181_TCP_ADDR 10.43.81.252
+ENV ZOOKEEPER_1_SERVICE_HOST 10.43.81.252
+ENV ZOOKEEPER_1_PORT_2181_TCP tcp://10.43.81.252:2181
+ENV ZOOKEEPER_1_PORT tcp://10.43.108.222:2181
+
+# Download and extract Kafka
+RUN mkdir /tmp/kafka && \
+    curl "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" \
+    -o /tmp/kafka/kafka.tgz && \
+    mkdir /kafka && cd /kafka && \
+    tar -xvzf /tmp/kafka/kafka.tgz --strip 1
+
+# Copy script.sh to the container
+COPY script.sh /usr/bin
+RUN chmod +x /usr/bin/script.sh && \
+    echo 'source /usr/bin/script.sh' >> /etc/bash.bashrc
+
+# Copy server.properties configuration file
+ARG CACHEBUST=1
+COPY server.properties /kafka/config/server.properties
+
+# Copy start-kafka.sh script to the container
+COPY start-kafka.sh /usr/bin
+RUN chmod +x /usr/bin/start-kafka.sh
+
+# Start Kafka using the provided script
+CMD ["start-kafka.sh", "bash"]
